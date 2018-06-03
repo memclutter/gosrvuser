@@ -43,7 +43,8 @@ func NewRouter() *fasthttprouter.Router {
 
 // Apply all middleware
 func ApplyMiddleware(h fasthttp.RequestHandler) fasthttp.RequestHandler {
-	// TODO: apply middleware here
+
+	h = MiddlewareLogging(h)
 
 	return h
 }
