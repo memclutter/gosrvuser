@@ -98,7 +98,7 @@ func main() {
 func NewRouter() *fasthttprouter.Router {
 	router := fasthttprouter.New()
 
-	// TODO: routes here
+	router.GET("/status", HandleStatus)
 
 	return router
 }
@@ -109,6 +109,8 @@ func ApplyMiddleware(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 	h = MiddlewareLogging(h)
 	h = MiddlewareMongodb(h)
 	h = MiddlewareAmqp(h)
+	h = MiddlewareHeader(h)
+	h = MiddlewareResponse(h)
 
 	return h
 }

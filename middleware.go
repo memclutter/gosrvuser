@@ -6,9 +6,21 @@ import (
 
 	"time"
 
+	"encoding/json"
+
 	"github.com/streadway/amqp"
 	"github.com/valyala/fasthttp"
 )
+
+func MiddlewareHeader(h fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return fasthttp.RequestHandler(func(ctx *fasthttp.RequestCtx) {
+		// Set common headers
+		ctx.Response.Header.SetContentType("application/json")
+
+		// Call handler
+		h(ctx)
+	})
+}
 
 // Logging middleware
 func MiddlewareLogging(h fasthttp.RequestHandler) fasthttp.RequestHandler {
@@ -51,8 +63,10 @@ func MiddlewareAmqp(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 		for {
 			var err error
 
-			if ch, err = mq.Channel(); err == nil {
-				break
+			if mq != nil {
+				if ch, err = mq.Channel(); err == nil {
+					break
+				}
 			}
 
 			log.Println("Trying to reselect amqp channel")
@@ -64,5 +78,46 @@ func MiddlewareAmqp(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 		// Run handler
 		h(ctx)
+	})
+}
+
+func MiddlewareResponse(h fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return fasthttp.RequestHandler(func(ctx *fasthttp.RequestCtx) {
+		// Call handler
+		h(ctx)
+
+		// Get status code
+		status := ctx.Response.StatusCode()
+
+		// Detect success flag
+		success := status >= fasthttp.StatusOK && status < fasthttp.StatusBadRequest
+
+		// Trying get error message
+		messageInterface := ctx.UserValue("response.message")
+		message := ""
+		if !success {
+			message = fasthttp.StatusMessage(status)
+		}
+		if messageInterface != nil {
+			message = messageInterface.(string)
+		}
+
+		// Get data
+		data := ctx.UserValue("response.data")
+
+		// Build response and set in body
+		response := Response{Success: success, Status: status}
+
+		if data != nil {
+			response.Data = data
+		}
+
+		if len(message) != 0 {
+			response.Message = message
+		}
+
+		// Set body
+		writer := json.NewEncoder(ctx.Response.BodyWriter())
+		writer.Encode(response)
 	})
 }
