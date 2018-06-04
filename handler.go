@@ -17,3 +17,17 @@ func HandleStatus(ctx *fasthttp.RequestCtx) {
 	ctx.Response.SetStatusCode(fasthttp.StatusOK)
 	ctx.SetUserValue("response.data", data)
 }
+
+func HandleSignUp(ctx *fasthttp.RequestCtx) {
+	ctx.Response.SetStatusCode(fasthttp.StatusOK)
+}
+
+// Handle not allowed http method
+func HandleMethodNotAllowed(ctx *fasthttp.RequestCtx) {
+	ctx.Response.SetStatusCode(fasthttp.StatusMethodNotAllowed)
+}
+
+// Handle not found
+func HandleNotFound(ctx *fasthttp.RequestCtx) {
+	ctx.Response.SetStatusCode(fasthttp.StatusNotFound)
+}

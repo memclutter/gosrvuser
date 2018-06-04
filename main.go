@@ -98,7 +98,11 @@ func main() {
 func NewRouter() *fasthttprouter.Router {
 	router := fasthttprouter.New()
 
+	router.NotFound = HandleNotFound
+	router.MethodNotAllowed = HandleMethodNotAllowed
+
 	router.GET("/status", HandleStatus)
+	router.POST("/sign-up", HandleSignUp)
 
 	return router
 }
