@@ -44,6 +44,7 @@ func main() {
 		log.Fatalf("mgo.Dial: %v", err)
 		return
 	}
+	defer mongodb.Close()
 
 	// Listen and serve
 	log.Print(fasthttp.ListenAndServe(addr, ApplyMiddleware(NewRouter().Handler)))
