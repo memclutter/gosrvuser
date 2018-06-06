@@ -6,6 +6,8 @@ import (
 	"bytes"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"github.com/valyala/fasthttp"
 )
 
@@ -27,6 +29,14 @@ func HandleStatus(ctx *fasthttp.RequestCtx) {
 
 // Handle POST /sign-up. This endpoint need for create new user.
 func HandleSignUp(ctx *fasthttp.RequestCtx) {
+	var ok bool
+	var db *mgo.Database
+
+	if db, ok = ctx.UserValue("mongodb.db").(*mgo.Database); !ok {
+		ctx.Response.SetStatusCode(fasthttp.StatusInternalServerError)
+		return
+	}
+
 	signUp, err := NewRequestSignUp(bytes.NewReader(ctx.Request.Body()))
 	if err != nil {
 		ctx.Response.SetStatusCode(fasthttp.StatusBadRequest)
@@ -39,10 +49,23 @@ func HandleSignUp(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// TODO: encrypt password
-	// TODO: save in database
+	model := new(User)
+	model.Id = bson.NewObjectId()
+	model.Email = signUp.Email
+	model.EncryptPassword(signUp.Password)
+	model.FirstName = signUp.FirstName
+	model.LastName = signUp.LastName
+	model.CreatedAt = time.Now().UTC()
+	model.Status = UserStatusCreated
+
+	if err := model.Save(db); err != nil {
+		ctx.Response.SetStatusCode(fasthttp.StatusInternalServerError)
+		return
+	}
+
 	// TODO: notify message bus
-	// TODO: set nil password in response
+
+	signUp.Password = ""
 
 	ctx.Response.SetStatusCode(fasthttp.StatusOK)
 	ctx.SetUserValue("response.data", signUp)
